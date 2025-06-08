@@ -44,6 +44,20 @@ app.delete('/tasks/:id', (req,res) => {
   }
 })
 
+app.post('/tasks/:id/rename', (req, res) => {
+  const taskId = parseInt(req.params.id);
+  const { newText } = req.body;
+  if (!isNaN(taskId) && tasks[taskId]) {
+    tasks[taskId].name = newText;
+    return res.sendStatus(200);
+  }
+
+  res.sendStatus(400);
+});
+
+
+
+
 app.listen(3000, () => {
   console.log('Server running at http://localhost:3000');
 });
