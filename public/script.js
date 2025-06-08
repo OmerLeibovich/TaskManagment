@@ -1,41 +1,46 @@
 $(document).ready(function () {
   console.log('script loaded');
 
-  // שליחת טופס הוספת משימה ב-AJAX
   $('#taskForm').on('submit', function (e) {
     e.preventDefault();
     const taskText = $('#taskInput').val().trim();
 
     if (taskText === '') return;
 
-    $.post('/tasks', { task: taskText }, function (data) {
-      $('#taskInput').val('');
-      $('.list-group').append(`
-        <li class="list-group-item" data-id="${data.id}">
-          <input type="checkbox" class="form-check-input" data-id="${data.id}">
-          <span>${data.name}</span>
-        </li>
-      `);
+    $.ajax({
+      url: '/tasks',
+      type: 'POST',
+      data: { task: taskText },
+      success: function (data) {
+        $('#taskInput').val('');
+        $('.list-group').append(`
+            <li class="list-group-item d-flex justify-content-between align-items-center" data-id="${data.id}">
+              <div>
+                <input type="checkbox" class="form-check-input me-2" data-id="${data.id}">
+                <span>${data.name}</span>
+              </div>
+              <button class="btn btn-danger btn-sm delete-btn" data-id="${data.id}">Delete</button>
+            </li>
+          `);
+      },
     }).fail(function () {
-      alert('שגיאה בהוספת משימה');
+      alert('cant add task');
     });
   });
-
-  // סימון משימה כבוצעה / לא בוצעה
-  $(document).on('change', '.form-check-input', function () {
+  });
+  
+$(document).on('change', '.form-check-input', function () {
     const taskId = $(this).data('id');
 
     $.post(`/tasks/${taskId}/toggle`, function () {
-      // אפשר להוסיף class או לעדכן סגנון במקום לרענן
+
     }).fail(function () {
-      alert('שגיאה בעדכון סטטוס');
+      alert('cant update status');
     });
   });
 
-  // (אופציונלי) מחיקת משימה
-  $(document).on('click', '.delete-btn', function () {
+$(document).on('click', '.delete-btn', function () {
     const taskId = $(this).data('id');
-
     $.ajax({
       url: `/tasks/${taskId}`,
       type: 'DELETE',
@@ -43,8 +48,7 @@ $(document).ready(function () {
         $(`li[data-id="${taskId}"]`).remove();
       },
       error: function () {
-        alert('שגיאה במחיקת משימה');
+        alert('cant delete task');
       }
     });
   });
-});

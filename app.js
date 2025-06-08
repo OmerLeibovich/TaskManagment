@@ -27,11 +27,22 @@ app.post('/tasks/:id/toggle', (req, res) => {
   const taskId = parseInt(req.params.id);
   if (!isNaN(taskId) && tasks[taskId]) {
     tasks[taskId].done = !tasks[taskId].done;
-    res.sendStatus(200); // הצלחה
+    res.sendStatus(200); 
   } else {
-    res.sendStatus(400); // שגיאה
+    res.sendStatus(400); 
   }
 });
+
+app.delete('/tasks/:id', (req,res) => {
+  const taskId = parseInt(req.params.id);
+  if (!isNaN(taskId) && tasks[taskId]) {
+  delete tasks[taskId];
+  res.sendStatus(200);
+  }
+  else{
+    res.sendStatus(400);
+  }
+})
 
 app.listen(3000, () => {
   console.log('Server running at http://localhost:3000');
