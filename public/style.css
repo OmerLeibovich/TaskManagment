@@ -1,0 +1,20 @@
+body {
+    background-color: white;
+    height: 50vh;
+    display: flex;
+    justify-content: center;
+    margin-top: 120px;
+    }
+.todo-box {
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 0 15px black;
+    width: 100%;
+    max-width: 500px;
+    }
+.task-list-container {
+    max-height: 300px;
+    overflow-y: auto;
+    margin-top: 15px;
+    }
