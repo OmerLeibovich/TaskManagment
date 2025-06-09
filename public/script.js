@@ -8,6 +8,8 @@ $(document).ready(function () {
       $('.list-group').html(newList);
     });
   };
+  
+  
 
   // Triggers a reload of tasks with the selected filter
   $('.filter-btn').on('change', function () {
@@ -43,6 +45,7 @@ $(document).ready(function () {
   // When checkbox is toggled, update task status on server and reload filtered list
   $(document).on('change', '.form-check-input', function () {
     const taskId = $(this).data('id');
+    console.log(taskId)
     $.ajax({
       url: `/tasks/${taskId}/toggle`,
       type: 'POST',
