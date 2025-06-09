@@ -2,53 +2,71 @@ const express = require('express');
 const app = express();
 
 app.set('view engine', 'ejs');
-app.set('views', __dirname + '/pages');
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
 let tasks = [];
-
+let nextId = 0;
+// Render the task list page, optionally filtered by task status
 app.get('/', (req, res) => {
-  res.render('index', { tasks });
+  const filter = req.query.filter;
+  let filteredTasks = tasks;
+
+  if (filter === 'done') {
+    filteredTasks = tasks.filter(task => task && task.done);
+  } else if (filter === 'notdone') {
+    filteredTasks = tasks.filter(task => task && !task.done);
+  } else {
+    filteredTasks = tasks.filter(task => task);
+  }
+
+  res.render('index', { tasks: filteredTasks, filter });
 });
 
+// Adds a new task to the list and returns it with its generated ID
 app.post('/tasks', (req, res) => {
   const task = req.body.task;
   if (task) {
-    const newTask = { name: task, done: false };
+    const newTask = { id: nextId++, name: task, done: false };
     tasks.push(newTask);
-    const id = tasks.length - 1;
-    return res.json({ id, ...newTask });
+    return res.json(newTask);
   }
   res.status(400).json({ error: 'Missing task' });
 });
 
+// Toggles the 'done' status of a specific task by its ID
 app.post('/tasks/:id/toggle', (req, res) => {
   const taskId = parseInt(req.params.id);
-  if (!isNaN(taskId) && tasks[taskId]) {
-    tasks[taskId].done = !tasks[taskId].done;
-    res.sendStatus(200); 
+  const task = tasks.find(t => t && t.id === taskId);
+  if (task) {
+    task.done = !task.done;
+    res.sendStatus(200);
   } else {
-    res.sendStatus(400); 
+    res.sendStatus(404); 
   }
 });
 
-app.delete('/tasks/:id', (req,res) => {
+// Deletes a task from the list by its ID if it exists
+app.delete('/tasks/:id', (req, res) => {
   const taskId = parseInt(req.params.id);
-  if (!isNaN(taskId) && tasks[taskId]) {
-  delete tasks[taskId];
-  res.sendStatus(200);
+  const index = tasks.findIndex(t => t && t.id === taskId);
+  if (index !== -1) {
+    tasks.splice(index, 1);
+    res.sendStatus(200);
+  } else {
+    res.sendStatus(404);
   }
-  else{
-    res.sendStatus(400);
-  }
-})
+});
 
+// Updates the name of a task by its ID if it exists
 app.post('/tasks/:id/rename', (req, res) => {
   const taskId = parseInt(req.params.id);
   const { newText } = req.body;
-  if (!isNaN(taskId) && tasks[taskId]) {
-    tasks[taskId].name = newText;
+
+  const task = tasks.find(t => t && t.id === taskId);
+
+  if (task && newText && newText.trim() !== '') {
+    task.name = newText.trim();
     return res.sendStatus(200);
   }
 
@@ -57,7 +75,6 @@ app.post('/tasks/:id/rename', (req, res) => {
 
 
 
-
 app.listen(3000, () => {
   console.log('Server running at http://localhost:3000');
-});
+}); 

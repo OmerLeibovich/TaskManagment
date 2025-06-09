@@ -1,9 +1,28 @@
+// This block runs once the DOM is fully loaded
 $(document).ready(function () {
-  console.log('script loaded');
 
+  // Function to reload the task list from the server, optionally filtered
+  const loadTasks = (filter = 'all') => {
+    $.get('/', { filter }, function (data) {
+      const newList = $(data).find('.list-group').html();
+      $('.list-group').html(newList);
+    });
+  };
+
+  // Triggers a reload of tasks with the selected filter
+  $('.filter-btn').on('change', function () {
+    const filter = $(this).val();
+    loadTasks(filter);
+  });
+
+  
+  // Handles submission of the new task form 
   $('#taskForm').on('submit', function (e) {
     e.preventDefault();
     const taskText = $('#taskInput').val().trim();
+
+    // Refocus input field after task is added
+    $('input:visible:enabled:first').focus();
 
     if (taskText === '') return;
 
@@ -13,96 +32,90 @@ $(document).ready(function () {
       data: { task: taskText },
       success: function (data) {
         $('#taskInput').val('');
-        $('.list-group').append(`
-          <li class="list-group-item d-flex justify-content-between align-items-center" data-id="${data.id}">
-            <div>
-              <input type="checkbox" class="form-check-input me-2" data-id="${data.id}">
-              <span>${data.name}</span>
-            </div>
-            <div class="d-flex">
-              <button class="btn btn-success btn-sm me-2 edit-btn" data-id="${data.id}">Edit</button>
-              <button class="btn btn-danger btn-sm delete-btn" data-id="${data.id}">Delete</button>
-            </div>
-          </li>
-        `);
+        loadTasks($('input.filter-btn:checked').val());
       },
-    }).fail(function () {
-      alert('cant add task');
+      error: function () {
+        alert('cant add task');
+      },
     });
   });
-  });
-  
-$(document).on('change', '.form-check-input', function () {
+
+  // When checkbox is toggled, update task status on server and reload filtered list
+  $(document).on('change', '.form-check-input', function () {
     const taskId = $(this).data('id');
-
-    $.post(`/tasks/${taskId}/toggle`, function () {
-
-    }).fail(function () {
-      alert('cant update status');
+    $.ajax({
+      url: `/tasks/${taskId}/toggle`,
+      type: 'POST',
+      success: function () {
+        loadTasks($('input.filter-btn:checked').val());
+      },
+      error: function () {
+        alert('cant update status');
+      }
     });
   });
 
-$(document).on('click', '.delete-btn', function () {
+  // When delete button is clicked, remove the task from the server and reload the list
+  $(document).on('click', '.delete-btn', function () {
     const taskId = $(this).data('id');
     $.ajax({
       url: `/tasks/${taskId}`,
       type: 'DELETE',
       success: function () {
-        $(`li[data-id="${taskId}"]`).remove();
+        loadTasks($('input.filter-btn:checked').val());
       },
       error: function () {
         alert('cant delete task');
-      }
+      },
     });
   });
-$(document).on('click', '.edit-btn', function () {
-  const $li = $(this).closest('li');
-  const taskId = $(this).data('id');
-  const $span = $li.find('span');
 
-  if ($li.find('input.edit-input').length > 0) return;
+  // When edit is clicked, replace task text with input field and change button to "Save"
+  $(document).on('click', '.edit-btn', function () {
+    const $li = $(this).closest('li');
+    const taskId = $(this).data('id');
+    const $span = $li.find('span');
+    const currentText = $span.text().trim();
 
-  const currentText = $span.text().trim();
-  $span.hide();
+    if ($li.find('input.edit-input').length > 0) return;
 
-  const $container = $span.parent();
-  $span.hide();
+    $span.hide();
 
-  const $input = $(`<input type="text" class="form-control form-control-sm edit-input me-2" value="${currentText}" style="width: auto; display: inline-block;">`);
-  $container.append($input);
+    const $input = $(`<input type="text" class="form-control form-control-sm edit-input me-2" value="${currentText}" style="width: auto; display: inline-block;">`);
+    $span.parent().append($input);
+
+    $input.focus();
+
+    $input.on('keydown', function (e) {
+      if (e.key === 'Enter') $li.find('.save-btn').click();
+    });
+
+    $(this).text('Save').removeClass('edit-btn btn-success').addClass('save-btn btn-warning');
+  });
 
 
-  $(this).text('Save').removeClass('edit-btn btn-success').addClass('save-btn btn-warning');
-});
+  // When save is clicked, update the task name on the server and reload the list
+  $(document).on('click', '.save-btn', function () {
 
-$(document).on('click', '.save-btn', function () {
-  const $li = $(this).closest('li');
-  const taskId = $(this).data('id');
-  const $input = $li.find('input.edit-input');
-  const newText = $input.val().trim();
-  const $span = $li.find('span');
-  const oldText = $span.text().trim();
+    $('input:visible:enabled:first').focus();
 
-  if (newText === '') return alert('Task name cannot be empty');
+    const $li = $(this).closest('li');
+    const taskId = $(this).data('id');
+    const $input = $li.find('input.edit-input');
+    const newText = $input.val().trim();
 
-  $.ajax({
-    url: `/tasks/${taskId}/rename`,
-    type: 'POST',
-    data: { newText },
-    success: function () {
-      $span.text(newText).show();
-      $input.remove();
+    if (newText === '') return alert('Task name cannot be empty');
 
-      
-      $li.find('.save-btn')
-        .text('Edit')
-        .removeClass('save-btn btn-warning')
-        .addClass('edit-btn btn-success');
-    },
-    error: function () {
-      alert('Failed to update task');
-    }
+    $.ajax({
+      url: `/tasks/${taskId}/rename`,
+      type: 'POST',
+      data: { newText },
+      success: function () {
+        loadTasks($('input.filter-btn:checked').val());
+      },
+      error: function () {
+        alert('Failed to update task');
+      },
+    });
   });
 });
-
-
